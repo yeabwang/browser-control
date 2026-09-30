@@ -1,5 +1,5 @@
 from datasets import Dataset
-from envs.browsergym_env import BrowserGymEnv, BrowserGymAction
+from browsergym_env import BrowserGymAction, BrowserGymEnv
 from peft import LoraConfig
 from transformers import AutoTokenizer
 from trl import GRPOTrainer, GRPOConfig
@@ -209,6 +209,8 @@ def fine_tune(config: FineTuningConfig) -> None:
 
     print(f'Initializing connection with BrowserGym running on {config.browsergym_url}')
     client = BrowserGymEnv(base_url=config.browsergym_url)
+    initial_result = client.reset()
+    print(f"Connected to BrowserGym task: {initial_result.observation.goal}")
 
     # load dataset
     dataset = Dataset.from_dict({"prompt": [config.default_goal] * config.dataset_size})

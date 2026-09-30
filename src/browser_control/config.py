@@ -44,7 +44,7 @@ class FineTuningConfig(BaseSettings):
     wandb_project_name: str
     wandb_experiment_name: str | None = None
     logging_steps: int                  # How often do we print out training loss?
-    push_to_hf: Optional[bool] = True
+    push_to_hf: Optional[bool] = False
 
     # LoRA-specific hyperparameters for parameter efficient fine-tuning
     use_peft: bool = False  # Default: disabled for backward compatibility

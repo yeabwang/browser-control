@@ -1,4 +1,4 @@
-from envs.browsergym_env import BrowserGymEnv, BrowserGymAction
+from browsergym_env import BrowserGymAction, BrowserGymEnv
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import numpy as np
 from PIL import Image

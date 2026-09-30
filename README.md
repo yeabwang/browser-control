@@ -157,25 +157,38 @@ To simplify things a bit, we will run both the `GRPOTrainer` and the `vLLM` on t
 
 ![](./media/collocate_vllm.jpg)
 
-Training runs independently of Modal and uses the GPU available to PyTorch and vLLM. Training batch size and vLLM memory utilization are configurable in each YAML file for the GPU's capacity.
+Training uses the GPU exposed to PyTorch and vLLM. The GPU model name does not need to go in an environment variable; check that the SSH host sees it with `nvidia-smi`. Training batch size and vLLM memory utilization are configurable in each YAML file for the GPU's capacity.
 
 ## How to train
 
-1. **Prepare the machine.** Install project dependencies with `uv sync`. For local training, use a GPU with compatible PyTorch and vLLM installations. For Modal, install its optional CLI dependency with `uv sync --extra modal`.
-2. **Choose a config.** Start with `configs/lfm2_350m_book_flight.yaml`. Set `browsergym_url` to an environment reachable from the training machine, and adjust batch size and `vllm_gpu_memory_utilization` for the selected GPU. The YAML also controls W&B logging and Hugging Face uploads (`wandb_enabled` and `push_to_hf`). Authenticate with those services if enabled. Modal runs require the `wandb-secret` Modal secret; set `push_to_hf: false` unless the Modal worker has a Hugging Face token.
-3. **Start training on the local GPU:**
+1. **Connect to the GPU machine, then start the BrowserGym container on that same machine:**
 
    ```sh
-   make fine-tune config=lfm2_350m_book_flight.yaml
+   ssh <user>@<gpu-host>
+   nvidia-smi
+   docker run --rm -p 8000:8000 \
+     -e BROWSERGYM_BENCHMARK=miniwob \
+     -e BROWSERGYM_TASK_NAME=click-test \
+     browsergym-env:latest
    ```
 
-   Or start it on Modal (GPU defaults to A100; set `MODAL_GPU` first to choose another Modal GPU):
+2. **Prepare the remote machine.** In another SSH session (or after starting Docker in the background), go to the project directory and run `uv sync --extra gpu`. This installs TRL with vLLM; use a supported Linux GPU with a working NVIDIA driver.
+3. **Use the local Docker config.** `configs/lfm2_350m_lora.yaml` points to `http://localhost:8000`. This works when training runs on the same host as Docker. Adjust batch size and `vllm_gpu_memory_utilization` there for your GPU. Set up W&B authentication if `wandb_enabled` is true.
+4. **Run LoRA training in the SSH session:**
 
    ```sh
-   make fine-tune-modal config=lfm2_350m_book_flight.yaml
+   make fine-tune config=lfm2_350m_lora.yaml
    ```
 
-4. **Find the output.** Local checkpoints are saved under `checkpoints/` by default. Set `MODEL_CHECKPOINTS_DIR` to use another directory. Modal checkpoints are saved in the `browser-control-fine-tune-with-grpo` volume.
+5. **Upload the saved checkpoint when training finishes.** Set `HF_TOKEN` on the GPU machine or run `hf auth login`, then pass the checkpoint directory printed by training and your Hugging Face repo ID:
+
+   ```sh
+   uv run python scripts/push_checkpoint.py \
+     --checkpoint-dir "checkpoints/<run-name>" \
+     --repo-id "<hf-username>/<model-repo>"
+   ```
+
+   Local checkpoints are saved under `checkpoints/` by default. Set `MODEL_CHECKPOINTS_DIR` to use another directory. LoRA runs upload the adapter; keep the base model ID (`LiquidAI/LFM2-350M`) to load it later.
 
 ## Experiments
 

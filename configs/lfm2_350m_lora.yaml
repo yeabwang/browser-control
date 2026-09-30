@@ -29,7 +29,7 @@ system_prompt: |
   Do not include explanations or multiple actions.
 
 # BrowserGym environment
-browsergym_url: https://burtenshaw-browsergym-v2.hf.space
+browsergym_url: http://localhost:8000
 dataset_size: 100
 default_goal: Complete the web task successfully.
 
